@@ -45,11 +45,22 @@ end
 % Distance matrix between frames
 D = sparse(D_i, D_j, D_s);
 
+% % Weighting neighboring frames to preserve continuous motion
+% m = 2;
+% W = zeros(1, m * 2 + 1);
+% normpdf=@(x,mu,sigma)   exp(-0.5 * ((x - mu)./sigma).^2) ./ (sqrt(2*pi) .* sigma);
+% 
+% for i = 1:length(W)
+%   W(i) = normpdf(i, m + 1, .5);
+% end
+% 
+% D = sparse(imfilter(full(D), W));
+
 % Smaller values of σ emphasize just the
 % very best transitions, while larger 
-% values ofσ allow for greater variety
+% values of σ allow for greater variety
 % at the cost of poorer transitions.
-sigma = sum(nonzeros(D)) / nnz(D);
+sigma = sum(nonzeros(D)) / nnz(D) * .1;
 
 
 % Probabilities of jumping from frame i to j
@@ -58,11 +69,8 @@ P = exp(-1 * circshift(D, [0 -1]) / sigma);
 % Normalize probabilities across i so sum of Pij = 1 for all j
 sumRows = sum(P, 2);
 P = P ./ repmat(sumRows, 1, numFrames);
-% sum(P, 2)
 
-% Random Play %%%%%%%%%%%%%%%%%%%%%%%%%%
-% Choose which frames to skip to
-% Create a video that's twice the length
+% Random Play %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 videoOut = VideoWriter('clock_loop.avi');
 open(videoOut);
 
