@@ -45,16 +45,16 @@ end
 % Distance matrix between frames
 D = sparse(D_i, D_j, D_s);
 
-% % Weighting neighboring frames to preserve continuous motion
-% m = 2;
-% W = zeros(1, m * 2 + 1);
-% normpdf=@(x,mu,sigma)   exp(-0.5 * ((x - mu)./sigma).^2) ./ (sqrt(2*pi) .* sigma);
-% 
-% for i = 1:length(W)
-%   W(i) = normpdf(i, m + 1, .5);
-% end
-% 
-% D = sparse(imfilter(full(D), W));
+% Weighting neighboring frames to preserve continuous motion
+m = 2;
+W = zeros(1, m * 2 + 1);
+normpdf=@(x,mu,sigma)   exp(-0.5 * ((x - mu)./sigma).^2) ./ (sqrt(2*pi) .* sigma);
+
+for i = 1:length(W)
+  W(i) = normpdf(i, m + 1, .5);
+end
+
+D = sparse(imfilter(full(D), W));
 
 % Smaller values of σ emphasize just the
 % very best transitions, while larger 
