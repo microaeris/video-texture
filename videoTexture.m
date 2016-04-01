@@ -15,14 +15,18 @@ NEIGHBORS = 1;
 colormap gray
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+videoFrames = zeros(34, 240*240*3);
+
 % Find number of frames
 videoStream = VideoReader(INPUT_STRING);
 frameRate = videoStream.FrameRate;
 numFrames = 0;
 
+i = 1;
 while hasFrame(videoStream)
-  readFrame(videoStream);
+  videoFrames(i, :) = reshape(readFrame(videoStream), 1, 240*240*3);
   numFrames = numFrames + 1;
+  i = i + 1;
 end
 
 % Restart the video
@@ -37,13 +41,15 @@ D_s = zeros(1, lenIndex);
 i = 1;
 k = 1;
 
-while hasFrame(videoStream1)
-  frame1 = double(readFrame(videoStream1));
+for i = 1:34 %hasFrame(videoStream1)
+  %frame1 = double(readFrame(videoStream1));
+  frame1 = reshape(videoFrames(i, :), [240 240 3]);
   videoStream2 = VideoReader(INPUT_STRING);
   j = 1;
   
-  while hasFrame(videoStream2)
-    frame2 = double(readFrame(videoStream2));
+  for j = 1:34 % hasFrame(videoStream2)
+    %frame2 = double(readFrame(videoStream2));
+    frame2 = reshape(videoFrames(j, :), [240 240 3]);
     dist = sum((frame1(:) - frame2(:)).^2);
     
     D_i(k) = i;
@@ -60,7 +66,7 @@ end
 % Distance matrix between frames
 D = sparse(D_i, D_j, D_s);
 
-imagesc(full(D));
+imshow(full(D), [0,1]);
 % imagesc(full(circshift(D, [-1 0])));
 
 if PRESERVE_MOTION
