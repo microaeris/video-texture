@@ -10,9 +10,9 @@ RANDOM_PLAY = true;
 PRESERVE_MOTION = true;
 
 % Parameters
-NEIGHBORS = 1;
+NEIGHBORS = 2;
 
-colormap gray
+colormap gray;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 videoFrames = zeros(34, 240*240*3);
@@ -24,50 +24,13 @@ numFrames = 0;
 
 i = 1;
 while hasFrame(videoStream)
-  videoFrames(i, :) = reshape(readFrame(videoStream), 1, 240*240*3);
+  videoFrames(i, :) = reshape(double(readFrame(videoStream)), 240*240*3, 1);
   numFrames = numFrames + 1;
   i = i + 1;
 end
 
-% Restart the video
-videoStream1 = VideoReader(INPUT_STRING);
-
-% Vectors to create sparse matrix
-lenIndex = numFrames * numFrames;
-D_i = zeros(1, lenIndex);
-D_j = zeros(1, lenIndex);
-D_s = zeros(1, lenIndex);
-
-i = 1;
-k = 1;
-
-for i = 1:34 %hasFrame(videoStream1)
-  %frame1 = double(readFrame(videoStream1));
-  frame1 = reshape(videoFrames(i, :), [240 240 3]);
-  videoStream2 = VideoReader(INPUT_STRING);
-  j = 1;
-  
-  for j = 1:34 % hasFrame(videoStream2)
-    %frame2 = double(readFrame(videoStream2));
-    frame2 = reshape(videoFrames(j, :), [240 240 3]);
-    dist = sum((frame1(:) - frame2(:)).^2);
-    
-    D_i(k) = i;
-    D_j(k) = j;
-    D_s(k) = dist;
-    
-    j = j + 1;
-    k = k + 1;
-  end
-  
-  i = i + 1;
-end
-
-% Distance matrix between frames
-D = sparse(D_i, D_j, D_s);
-
-imshow(full(D), [0,1]);
-% imagesc(full(circshift(D, [-1 0])));
+D = dist2(videoFrames, videoFrames);
+D = circshift(D, [0 1]);
 
 if PRESERVE_MOTION
   % Weight neighboring frames to preserve continuous motion
@@ -80,7 +43,7 @@ if PRESERVE_MOTION
   end
   
   W = diag(W);
-  D = sparse(imfilter(full(D), W));
+  D = imfilter(D, W);
     
   [h, w] = size(D); 
   D = D(NEIGHBORS:h - NEIGHBORS, NEIGHBORS:w - NEIGHBORS);
@@ -89,34 +52,31 @@ end
 % Smaller values of sigma emphasize just the very best
 % transitions, while larger values of sigma allow for
 % greater variety at the cost of poorer transitions.
-sigma = sum(nonzeros(D)) / nnz(D) * .1;
+sigma = (sum(nonzeros(D)) ./ nnz(D)) * .05;
 
 % Probabilities of jumping from frame i to j
-P = exp(-1 * circshift(D, [0 -1]) / sigma);
+P = exp(-D ./ sigma);
 
 % Normalize probabilities across i so sum of Pij = 1 for all j
 sumRows = sum(P, 2);
 P = P ./ repmat(sumRows, 1, size(P, 2));
 
-% imshow(full(D), [0 max(max(D))]);
-% imagesc(full(D));
-% imagesc(full(P));
+
+imagesc(P)
 
 if RANDOM_PLAY
   videoOut = VideoWriter(OUTPUT_STRING);
   open(videoOut);
   
-  totalFrames = numFrames * 3; % was *5
+  totalFrames = numFrames * 5;
   countFrames = 0;
   curIndex = 1;
   
   while countFrames < totalFrames
-    videoStream = VideoReader(INPUT_STRING);
-    videoStream.CurrentTime = curIndex / frameRate;
-    curFrame = readFrame(videoStream);
+    curFrame = reshape(uint8(videoFrames(curIndex, :)), 240, 240, 3);
     
-    writeVideo(videoOut,curFrame);
-    curIndex = discretesample(full(P(curIndex, :)), 1);
+    writeVideo(videoOut, curFrame);
+    curIndex = discretesample(P(curIndex, :), 1);
     
     countFrames = countFrames + 1;
   end
