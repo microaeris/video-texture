@@ -32,7 +32,7 @@ D_j = zeros(1, lenIndex);
 D_s = zeros(1, lenIndex);
 
 i = 1;
-k = 1;
+k = 1
 while hasFrame(videoStream1)
   frame1 = double(readFrame(videoStream1));
   videoStream2 = VideoReader(INPUT_STRING);
@@ -40,16 +40,14 @@ while hasFrame(videoStream1)
   j = 1;
   while hasFrame(videoStream2)
     frame2 = double(readFrame(videoStream2));
-    %     dist = sqrt(sum((frame1(:) - frame2(:)).^ 2));
-    dist = sum((frame1(:) - frame2(:)).^2);
+    dist = sqrt(sum((frame1(:) - frame2(:)) .^ 2));
     
-    %     curIndex = (j-1) * numFrames + i;
-    D_i(k) = i;
-    D_j(k) = j;
-    D_s(k) = dist;
+%     curIndex = (j-1) * numFrames + i;
+    D_i(curIndex) = i;
+    D_j(curIndex) = j;
+    D_s(curIndex) = dist;
     
     j = j + 1;
-    k = k + 1;
   end
   
   i = i + 1;
@@ -65,7 +63,8 @@ if PRESERVE_MOTION
   for i = 1:length(W)
     W(i) = normpdf(i, NEIGHBORS, .5);
   end
-
+  
+  length(W)
   W = diag(W);
   D = sparse(imfilter(full(D), W));
 end
@@ -82,8 +81,8 @@ P = exp(-1 * circshift(D, [0 -1]) / sigma);
 sumRows = sum(P, 2);
 P = P ./ repmat(sumRows, 1, numFrames);
 
-imagesc(full(D));
-% imagesc(full(P));
+% imagesc(full(D));
+imagesc(full(P));
 
 if RANDOM_PLAY
   videoOut = VideoWriter(OUTPUT_STRING);
