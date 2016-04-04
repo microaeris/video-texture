@@ -1,13 +1,13 @@
-function [ videoLoop ] = findVideoLoop( D, L, numFrames )
+function [ videoLoop ] = findVideoLoop( D, primitiveLoops, L, numFrames )
 
-primitiveLoops = [];
-for i = 1:numFrames
-  for j = 1:numFrames
-    if i >= j 
-      primitiveLoops = [primitiveLoops [i; j]];
-    end
-  end
-end
+% primitiveLoops = [];
+% for i = 1:numFrames
+%   for j = 1:numFrames
+%     if i >= j 
+%       primitiveLoops = [primitiveLoops [i; j]];
+%     end
+%   end
+% end
 
 % Build the DP table to find the optimal compound loop
 dp = zeros(L, length(primitiveLoops), L*2 + 1);
@@ -35,6 +35,7 @@ end
 
 % Now fill in the rest
 for i = 2:size(dp, 1)
+  [i size(dp, 1)]
   for j = 1:size(dp, 2)
     column = dp(1:i-1, j, :);
     minCost = inf;
@@ -129,7 +130,12 @@ for i = 2:size(dp, 1)
   end
 end
 
-dp(:,:,:)
+for i = 1:size(primitiveLoops, 2)
+  if dp(L,i,1) == 0
+    dp(L,i,1) = inf;
+  end
+end
+dp(L,:,1)
 
 % Get the min compound loop out
 [~, index] = min(dp(L,:,1));
