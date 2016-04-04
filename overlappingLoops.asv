@@ -1,0 +1,22 @@
+function [ overlap ] = overlappingLoops( primLoop, compLoop )
+% primLoop should is 2*1, (end, start)
+% compLoop should already be reshaped. (start; end)
+
+compStart = nonzeros(compLoop(1,:));
+compEnd = nonzeros(compLoop(2,:));
+
+% Beginning of comp loops should start before end of primLoop
+test1 = compStart - repmat(primLoop(1), length(compStart), 1);
+
+% End of comp loops should start after start of primLoop
+test2 = compEnd - repmat(primLoop(2), length(compEnd), 1);
+
+primLoop
+compLoop
+test1
+test2
+
+overlap = any(test1 < 0) || any(test2 > 0);
+
+end
+
