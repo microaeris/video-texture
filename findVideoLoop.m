@@ -135,7 +135,7 @@ for i = 1:size(primitiveLoops, 2)
     dp(L,i,1) = inf;
   end
 end
-dp(L,:,1)
+% dp(L,:,1)
 
 % Get the min compound loop out
 [~, index] = min(dp(L,:,1));

@@ -2,23 +2,23 @@
 % http://www.cc.gatech.edu/cpl/projects/videotexture/SIGGRAPH2000/videotex.pdf
 
 % OPTIONS %%%%%%%%%%%%%%%%%%%%%%%%
-INPUT_STRING = 'clock.mpg';       % Input video name
-OUTPUT_STRING = 'clock_loop_vl.avi';  % Output video name
+INPUT_STRING = 'source-videos/bird-crop.avi'; % Input video name
+OUTPUT_STRING = 'bird-test_video_loop.avi';  % Output video name
+VERBOSE = true;
 
 % Algorithm settings
 IS_GIF = false;
 RANDOM_PLAY = false;
 VIDEO_LOOPS = true;
 PRESERVE_MOTION = true;
-PRUNE = true;
 
 % Parameters
 NEIGHBORS = 2;
 SIGMA_MULTIPLE = .05;
 OUTPUT_LENGTH_FACTOR = 3;
 
-OUTPUT_ROW = 240;
-OUTPUT_COL = 240;
+% OUTPUT_ROW = 240;
+% OUTPUT_COL = 240;
 
 % colormap gray;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -59,13 +59,13 @@ else
   end
 end
 
-'found number of frames'
+if VERBOSE, display('Found number of frames.'), end
 
 %% Construct D, the distance matrix
 D = dist2(videoFrames, videoFrames);
 D = circshift(D, [0 1]);
 
-'made D'
+if VERBOSE, display('Made D.'), end
 
 %% Preserve dynamics by filtering D
 if PRESERVE_MOTION
@@ -83,9 +83,11 @@ if PRESERVE_MOTION
   
   [h, w] = size(D);
   D = D(NEIGHBORS:h - NEIGHBORS, NEIGHBORS:w - NEIGHBORS);
+  
+  if VERBOSE, display('Preserved motion.'), end
 end
 
-'preserved dynamics'
+
 
 %% Construct P
 % Smaller values of sigma emphasize just the very best
@@ -100,7 +102,7 @@ P = exp(-D ./ sigma);
 sumRows = sum(P, 2);
 P = P ./ repmat(sumRows, 1, size(P, 2));
 
-'made P'
+if verbose, display('Made P.'), end
 %% Write out the video texture
 videoOut = VideoWriter(OUTPUT_STRING);
 open(videoOut);
@@ -119,24 +121,23 @@ if RANDOM_PLAY
     curIndex = discretesample(P(curIndex, :), 1);
     countFrames = countFrames + 1;
   end
-  ' done with radom play'
+  if verbose, display('Done with random play.'), end
 elseif VIDEO_LOOPS
+  % Prune
+  D = imfilter(D, fspecial('Gaussian'));
+  prune = tril(-D); % Need to find the "smallest" D value with max func so need to negate it
+  prune = prune - min(min(prune));
+  localMinFinder = vision.LocalMaximaFinder;
+  localMinFinder.MaximumNumLocalMaxima = ceil(max(max(prune)));
+  localMinFinder.NeighborhoodSize = [11 11]; % 11 11
+  localMinFinder.Threshold = max(max(prune)) * .5; % .5
   
-  if PRUNE
-    prune = tril(-D); % Need to find the "smallest" D value with max func so need to negate it
-    prune = prune - min(min(prune));
-    localMinFinder = vision.LocalMaximaFinder;
-    localMinFinder.MaximumNumLocalMaxima = ceil(max(max(prune)));
-    localMinFinder.NeighborhoodSize = [11 11];
-    localMinFinder.Threshold = max(max(prune)) * .5;
-    
-    IDX = step(localMinFinder, prune);
-    size(IDX, 1);
-  end
-  
-  'done with pruning'
+  IDX = step(localMinFinder, prune);
+  size(IDX, 1);
   
   IDX = double(sort(IDX, 2, 'descend')'); % this may be a problem
+  
+  if verbose, display('Made IDX.'), end
   
   % Remove primitive loops that are close to the diagonal
   test = IDX(1,:) - IDX(2,:);
@@ -144,12 +145,16 @@ elseif VIDEO_LOOPS
   IDX = IDX .* repmat(test, 2,1);
   IDX = nonzeros(IDX);
   IDX = reshape(IDX, 2, size(IDX, 1)/2);
+  if verbose, display('Done with pruning.'), end
   
   videoLoop = findVideoLoop(D, IDX, totalFrames, numFrames);
+  if verbose, display('Found video loop.'), end
   
-  'foun
   % videoLoop = [7 38 20 25 7 40 7 40 7 40];
-  videoLoop = schedule(videoLoop);
+  %   videoLoop = [1 35 1 32 1 14 1 14 7 14 7 14];
+  videoLoop = schedule(videoLoop)
+  if verbose, display('Scheduled the loop.'), end
+  
   videoLoop = uint8(videoLoop); % this is scary!!
   curFrameIdx = videoLoop(2, 1);
   
@@ -178,6 +183,8 @@ elseif VIDEO_LOOPS
     % Go back to start frame
     curFrameIdx = curLoop(1);
   end
+  
+  if verbose, display('Wrote the video, done.'), end
 end
 
 close(videoOut);
